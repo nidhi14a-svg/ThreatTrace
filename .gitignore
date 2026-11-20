@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+frontend/.next/
+
+# Python
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Environment
+.env
+*.env.local
+
+# Upload and extraction workspaces
+backend/uploads/
+uploads/
+workspaces/
+extracted/
+*.zip
+
+# Builds
+build/
+dist/
+coverage/
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db

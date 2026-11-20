@@ -1,0 +1,1 @@
+"""Consolidated report service placeholder."""
