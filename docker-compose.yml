@@ -6,27 +6,139 @@ services:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
+    networks:
+      - app-net
     depends_on:
       - backend
+    security_opt:
+      - no-new-privileges:true
+    cpus: 1.0
+    mem_limit: 1024m
+    memswap_limit: 1024m
+    pids_limit: 100
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1024M
+          pids: 100
 
   backend:
     build:
       context: ./backend
+      dockerfile: Dockerfile
     environment:
       MONGODB_URI: mongodb://mongodb:27017
       DATABASE_NAME: ${DATABASE_NAME:-thread_trace}
-      UPLOAD_DIRECTORY: /tmp/thread-trace/uploads
+      UPLOAD_DIRECTORY: ${UPLOAD_DIRECTORY:-/tmp/thread-trace/uploads}
       MAX_UPLOAD_SIZE: ${MAX_UPLOAD_SIZE:-104857600}
+      WORKSPACE_BASE_DIR: /tmp/thread-trace/workspaces
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-gemini-1.5-pro}
+      SCANNER_TIMEOUT_SECONDS: ${SCANNER_TIMEOUT_SECONDS:-60}
+      GLOBAL_SCAN_TIMEOUT_SECONDS: ${GLOBAL_SCAN_TIMEOUT_SECONDS:-300}
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
+    networks:
+      - app-net
+      - db-net
+      - scanner-net
     depends_on:
       - mongodb
+      - scanner
+    volumes:
+      - scanner_workspaces:/tmp/thread-trace/workspaces
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    cpus: 1.5
+    mem_limit: 1024m
+    memswap_limit: 1024m
+    pids_limit: 150
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1024M
+          pids: 150
 
   mongodb:
     image: mongo:7
     restart: unless-stopped
+    networks:
+      - db-net
     volumes:
       - mongodb_data:/data/db
+    security_opt:
+      - no-new-privileges:true
+    cpus: 1.0
+    mem_limit: 1024m
+    memswap_limit: 1024m
+    pids_limit: 100
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1024M
+          pids: 100
+
+  scanner:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.scanner
+    restart: unless-stopped
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=67108864
+    networks:
+      - scanner-net
+    volumes:
+      - scanner_workspaces:/tmp/thread-trace/workspaces
+      - ./backend/app:/app/app:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - HOME=/tmp
+      - TMPDIR=/tmp
+      - WORKSPACE_BASE_DIR=/tmp/thread-trace/workspaces
+      - SEMGREP_SEND_METRICS=off
+      - SEMGREP_SETTINGS_CACHE_DISABLED=1
+      - SEMGREP_RULES=/app/rules/owasp-top-ten.yml
+      - OSV_SCANNER_OFFLINE=true
+      - OSV_SCANNER_LOCAL_DB_CACHE_DIRECTORY=/app/osv-db
+      - XDG_CACHE_HOME=/app/osv-db
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    cpus: 2.0
+    mem_limit: 1536m
+    memswap_limit: 1536m
+    pids_limit: 100
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1536M
+          pids: 100
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["while true; do sleep 3600; done"]
+
+networks:
+  app-net:
+    driver: bridge
+  db-net:
+    driver: bridge
+    internal: true
+  scanner-net:
+    driver: bridge
+    internal: true
 
 volumes:
   mongodb_data:
+  scanner_workspaces:

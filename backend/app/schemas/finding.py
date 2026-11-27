@@ -16,3 +16,4 @@ class Finding(BaseModel):
     explanation: str | None = None
     recommendation: str | None = None
     tool: str
+    raw_category: str | None = None

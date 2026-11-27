@@ -492,7 +492,7 @@ async def test_safe_subprocess_arguments_invoked(tmp_path: Path):
         args, kwargs = mock_exec.call_args
         assert args[0] == "gitleaks"
         assert args[1] == "dir"
-        assert "--no-git" in args
+        assert "--no-git" not in args
         assert "--report-format" in args
         assert "json" in args
         assert "--redact" in args

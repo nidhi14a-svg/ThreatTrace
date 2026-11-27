@@ -43,7 +43,15 @@ class SemgrepScanner(BaseScanner):
             allow_skip_if_missing: If True, mark missing binary as 'skipped' instead of 'failed'.
         """
         self.binary_path = os.environ.get("SEMGREP_BINARY_PATH", binary_path)
-        self.rules = os.environ.get("SEMGREP_RULES", rules)
+        default_rules = "/app/rules/owasp-top-ten.yml" if Path("/app/rules/owasp-top-ten.yml").exists() else "p/owasp-top-ten"
+        env_rules = os.environ.get("SEMGREP_RULES")
+        if env_rules:
+            self.rules = env_rules
+        elif rules != "p/owasp-top-ten":
+            self.rules = rules
+        else:
+            self.rules = default_rules
+
         self.timeout_seconds = float(
             os.environ.get("SEMGREP_TIMEOUT_SECONDS", str(timeout_seconds))
         )
@@ -146,6 +154,7 @@ class SemgrepScanner(BaseScanner):
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 cwd=str(workspace_path),
+                env={**os.environ, "PYTHONWARNINGS": "ignore"},
             )
         except FileNotFoundError:
             return self.create_result(
@@ -347,7 +356,6 @@ class SemgrepScanner(BaseScanner):
         except (ValueError, RuntimeError):
             # Path escapes the workspace root (directory traversal attempt)
             return "[REJECTED_OUTSIDE_WORKSPACE]"
-
     def _sanitize_error(self, raw_stderr: str, max_length: int = 500) -> str | None:
         """
         Strip ANSI codes and summarize stderr safely without exposing secrets
@@ -360,9 +368,9 @@ class SemgrepScanner(BaseScanner):
         # Strip ANSI escape sequences
         cleaned = re.sub(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])", "", cleaned)
 
-        # Collect first few non-empty lines for a safe diagnostic summary
+        # Collect last few non-empty lines so warnings at the top don't hide the actual error
         lines = [line.strip() for line in cleaned.splitlines() if line.strip()]
-        summary = " | ".join(lines[:3]) if lines else cleaned
+        summary = " | ".join(lines[-5:]) if lines else cleaned
 
         if len(summary) > max_length:
             summary = summary[:max_length] + "..."

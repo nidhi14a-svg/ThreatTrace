@@ -78,7 +78,7 @@ class DependencyScanner(BaseScanner):
         timeout_seconds: float = 60.0,
         max_output_bytes: int = 10 * 1024 * 1024,
         allow_skip_if_missing: bool = False,
-        offline: bool = False,
+        offline: bool = True,
     ) -> None:
         """
         Initialize DependencyScanner with configurable execution parameters.
@@ -361,11 +361,17 @@ class DependencyScanner(BaseScanner):
         cmd = [
             self.binary_path,
             "--json",
+            "--no-ignore",
             "-r",
-            str(workspace_path),
         ]
         if self.offline:
-            cmd.append("--offline")
+            cmd.extend([
+                "--offline",
+                "--offline-vulnerabilities",
+                "--local-db-path",
+                "/app/osv-db",
+            ])
+        cmd.append(str(workspace_path))
 
         # 6. Execute Subprocess Asynchronously
         try:

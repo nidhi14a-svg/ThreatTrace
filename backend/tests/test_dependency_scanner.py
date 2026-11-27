@@ -142,7 +142,7 @@ def test_dependency_scanner_initialization_defaults():
     assert scanner.timeout_seconds == 60.0
     assert scanner.max_output_bytes == 10 * 1024 * 1024
     assert scanner.allow_skip_if_missing is False
-    assert scanner.offline is False
+    assert scanner.offline is True
 
 
 def test_dependency_scanner_initialization_custom_and_env(monkeypatch):
@@ -150,13 +150,13 @@ def test_dependency_scanner_initialization_custom_and_env(monkeypatch):
     monkeypatch.setenv("OSV_SCANNER_BINARY_PATH", "/custom/bin/osv-scanner")
     monkeypatch.setenv("OSV_SCANNER_TIMEOUT_SECONDS", "120.0")
     monkeypatch.setenv("OSV_SCANNER_MAX_OUTPUT_BYTES", "5242880")
-    monkeypatch.setenv("OSV_SCANNER_OFFLINE", "true")
+    monkeypatch.setenv("OSV_SCANNER_OFFLINE", "false")
 
     scanner = DependencyScanner()
     assert scanner.binary_path == "/custom/bin/osv-scanner"
     assert scanner.timeout_seconds == 120.0
     assert scanner.max_output_bytes == 5242880
-    assert scanner.offline is True
+    assert scanner.offline is False
 
 
 def test_dependency_scanner_is_available():
@@ -340,9 +340,10 @@ async def test_scan_successful_vulnerability_parsing(tmp_path):
         mock_exec.assert_called_once()
         args = mock_exec.call_args[0]
         assert args[0] == "osv-scanner"
-        assert args[1] == "--json"
-        assert args[2] == "-r"
-        assert args[3] == str(workspace_dir.resolve())
+        assert "--json" in args
+        assert "--no-ignore" in args
+        assert "-r" in args
+        assert str(workspace_dir.resolve()) in args
 
         # Check status and findings
         assert result.status == "success"

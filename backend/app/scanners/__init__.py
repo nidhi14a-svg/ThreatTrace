@@ -10,6 +10,11 @@ from app.scanners.base_scanner import (
     ScannerTimeoutError,
     aggregate_scanner_statuses,
 )
+from app.scanners.workspace import (
+    WorkspaceManager,
+    WorkspacePaths,
+    WorkspaceSecurityError,
+)
 
 __all__ = [
     "BaseScanner",
@@ -20,4 +25,7 @@ __all__ = [
     "ScannerDependencyMissingError",
     "ScannerExecutionError",
     "aggregate_scanner_statuses",
+    "WorkspaceManager",
+    "WorkspacePaths",
+    "WorkspaceSecurityError",
 ]

@@ -135,7 +135,6 @@ class SecretsScanner(BaseScanner):
             self.binary_path,
             "dir",
             str(workspace_path),
-            "--no-git",
             "--report-format",
             "json",
             "--redact",

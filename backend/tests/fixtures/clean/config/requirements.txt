@@ -1,0 +1,4 @@
+# Pinned dependency manifest
+requests==2.32.3
+flask==3.0.3
+pyjwt==2.9.0
